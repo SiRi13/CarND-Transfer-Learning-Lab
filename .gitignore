@@ -3,3 +3,5 @@ models
 .ipynb_checkpoints
 bottlenecks
 .remote-sync.json
+*.zip
+*.p

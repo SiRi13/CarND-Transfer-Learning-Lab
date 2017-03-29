@@ -1,12 +1,8 @@
 import pickle
 import tensorflow as tf
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.model_selection import train_test_split
 # import Keras layers you need here
-from keras.models import Sequential
-from keras.layers.core import Dense, Activation, Flatten, Dropout
-from keras.layers.convolutional import Convolution2D
-from keras.layers.pooling import MaxPooling2D
+from keras.models import Model
+from keras.layers import Input, Dense, Flatten
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -46,38 +42,23 @@ def load_bottleneck_data(training_file, validation_file):
 def main(_):
     # load bottleneck data
     X_train, y_train, X_val, y_val = load_bottleneck_data(FLAGS.training_file, FLAGS.validation_file)
-    # Split data into training and validation sets.
-    X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.3, random_state=0)
 
     print(X_train.shape, y_train.shape)
     print(X_val.shape, y_val.shape)
 
     n_classes = FLAGS.n_classes if FLAGS.n_classes > 0 else len(np.unique(y_train))
-    input_shape = X_train.shape[1:]
+    in_shape = X_train.shape[1:]
+    print("Shape: {}\nn_classes: {}".format(in_shape, n_classes))
+
     # define your model and hyperparams here
-    # make sure to adjust the number of classes based on
-    # the dataset
-    # 10 for cifar10
-    # 43 for traffic
-    model = Sequential()
-    model.add(Convolution2D(32, 3, 3, input_shape=input_shape))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Dropout(0.5))
-    model.add(Activation('relu'))
-    model.add(Flatten())
-    model.add(Dense(128))
-    model.add(Activation('relu'))
-    model.add(Dense(n_classes))
-    model.add(Activation('softmax'))
+    inp = Input(shape=in_shape)
+    x = Flatten()(inp)
+    x = Dense(n_classes, activation='softmax')(x)
+    model = Model(inp, x)
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    # preprocess data
-    X_train = np.array(X_train / 255.0 - 0.5 )
-    X_val = np.array(X_val / 255.0 - 0.5 )
-
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-    # TODO: train your model here
-    model.fit(X_train, y_train, nb_epoch=FLAGS.n_epochs, batch_size=FLAGS.batch_size, validation_data=(X_val, y_val), shuffle=True)
+    # train your model here
+    model.fit(X_train, y_train, epochs=FLAGS.n_epochs, batch_size=FLAGS.batch_size, validation_data=(X_val, y_val), shuffle=True)
 
 # parses flags and calls the `main` function above
 if __name__ == '__main__':
